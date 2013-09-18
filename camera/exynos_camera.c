@@ -694,7 +694,7 @@ int exynos_camera_params_apply(struct exynos_camera *exynos_camera, int force)
 		exynos_camera->jpeg_thumbnail_quality = jpeg_thumbnail_quality;
 
 	jpeg_quality = exynos_param_int_get(exynos_camera, "jpeg-quality");
-	if (jpeg_quality <= 120 && jpeg_quality >= 0 && (jpeg_quality != exynos_camera->jpeg_quality || force)) {
+	if (jpeg_quality <= 100 && jpeg_quality >= 0 && (jpeg_quality != exynos_camera->jpeg_quality || force)) {
 		exynos_camera->jpeg_quality = jpeg_quality;
 		rc = exynos_v4l2_s_ctrl(exynos_camera, 0, V4L2_CID_CAM_JPEG_QUALITY, jpeg_quality);
 		if (rc < 0)
@@ -1294,7 +1294,7 @@ int exynos_camera_capture(struct exynos_camera *exynos_camera)
 
 	// Buffers
 
-//	switch (format) {
+	switch (format) {
 		/*case V4L2_PIX_FMT_UYVY:
 			yuv_length = jpeg_length = 0;
 			auto_focus_result = decoded = 0;
@@ -1360,7 +1360,7 @@ int exynos_camera_capture(struct exynos_camera *exynos_camera)
 				exynos_camera->capture_hybrid = 0;
 			}
 			break;*/
-		//case V4L2_PIX_FMT_JPEG:
+		case V4L2_PIX_FMT_JPEG:
 		        ALOGE("SBRISSEN - V4L2_PIX_FMT_JPEG 2\n");
 			jpeg_size = jpeg_offset = 0;
 			jpeg_thumbnail_size = jpeg_thumbnail_offset = 0;
@@ -1409,8 +1409,8 @@ int exynos_camera_capture(struct exynos_camera *exynos_camera)
 			buffer->width = exynos_camera->jpeg_thumbnail_width;
 			buffer->height = exynos_camera->jpeg_thumbnail_height;
 			buffer->format = V4L2_PIX_FMT_YUYV;
-			//break;
-/*		default:
+			break;
+		default:
 			buffers_count = 1;
 			buffers = (struct exynos_camera_buffer *) calloc(buffers_count, sizeof(struct exynos_camera_buffer));
 
@@ -1422,8 +1422,8 @@ int exynos_camera_capture(struct exynos_camera *exynos_camera)
 			buffer->width = width;
 			buffer->height = height;
 			buffer->format = format;
-			break;*/
-//	}
+			break;
+	}
 
 	// Listeners
 
@@ -1759,7 +1759,7 @@ if(!is_capture) {
 	}
 }else{
  	for (i = EXYNOS_CAMERA_CAPTURE_BUFFERS_COUNT; i > 0; i--) {
-		rc = exynos_v4l2_reqbufs_cap(exynos_camera, 1, i);
+		rc = exynos_v4l2_reqbufs_cap(exynos_camera, 0, i);
 		if (rc >= 0)
 			break;
 	}
@@ -1783,7 +1783,6 @@ if(!is_capture) {
 		goto error;
 	}
 
-if(!is_capture) {
 	for (i = 0; i < buffers_count; i++) {
 		rc = exynos_v4l2_querybuf_cap(exynos_camera, 0, i);
 		if (rc < 0) {
@@ -1791,15 +1790,6 @@ if(!is_capture) {
 			goto error;
 		}
 	}
-}else{
-	for (i = 0; i < buffers_count; i++) {
-		rc = exynos_v4l2_querybuf_cap(exynos_camera, 1, i);
-		if (rc < 0) {
-			ALOGE("%s: Unable to query buffers", __func__);
-			goto error;
-		}
-	}
-}
 
 	buffer_length = rc;
 	
@@ -1809,9 +1799,10 @@ if(!is_capture) {
 		goto error;
 	}
 
-	value = exynos_v4l2_s_ctrl(exynos_camera, 0, V4L2_CID_PADDR_CBCR, value);
 	
 	exynos_camera->capture_memory_address = value;
+	
+	value = exynos_v4l2_s_ctrl(exynos_camera, 0, V4L2_CID_PADDR_CBCR, 0);
 	
 	ALOGE("%s : VALUE: %i", __func__, value);
 	/*if (value == 0 ) {
@@ -1884,7 +1875,7 @@ if(!is_capture) {
 	}
 	
 if(is_capture){
-  	rc = exynos_v4l2_s_ctrl(exynos_camera, 1, V4L2_CID_CAMERA_CAPTURE, 0);
+  	rc = exynos_v4l2_s_ctrl(exynos_camera, 0, V4L2_CID_CAMERA_CAPTURE, 0);
 	if (rc < 0) {
 		ALOGE("%s: s ctrl failed!", __func__);
 		return -1;
@@ -2564,7 +2555,7 @@ int exynos_camera_picture_callback(struct exynos_camera *exynos_camera,
 
 	pthread_mutex_lock(&exynos_camera->picture_mutex);
 
-	//if (!exynos_camera->picture_enabled && !exynos_camera->camera_fimc_is) {
+	if (!exynos_camera->picture_enabled && !exynos_camera->camera_fimc_is) {
 		rc = exynos_v4l2_s_ctrl(exynos_camera, 0, V4L2_CID_CAMERA_CAPTURE, 0);
 		if (rc < 0) {
 			ALOGE("%s: Unable to set capture", __func__);
@@ -2585,7 +2576,7 @@ int exynos_camera_picture_callback(struct exynos_camera *exynos_camera,
 
 		pthread_mutex_unlock(&exynos_camera->picture_mutex);
 		return 0;
-	//}
+	}
 
 	pthread_mutex_unlock(&exynos_camera->picture_mutex);
 
